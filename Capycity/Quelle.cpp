@@ -1,101 +1,7 @@
 #include <iostream>
 #include <string>
-#include <vector>
 
 using namespace std;
-
-class Material {
-    public: 
-        double preis;
-
-        double getPreis() {
-            return preis;
-        }
-};
-
-class Holz : public Material {
-    public:
-        Holz() {
-            this->preis = 5.0;
-        }
-};
-
-class Metall: public Material {
-    public:
-        Metall() {
-            this->preis = 10.0;
-        }
-};
-
-class Kunststoff : public Material {
-    public:
-        Kunststoff() {
-            this->preis = 7.50;
-        }
-};
-
-//Annahme: Einzeilpreis ergibt sich aus Grundpreis des Gebaeudes + den Kosten pro benoetigtes Material
-//Annahme: Grundpreis und benoetigtes Material muss pro belegtes Feld aufgewendet werden
-
-class Building {
-    public:
-        double grundpreis;
-        double einzelpreis;
-        string label;  
-        vector<Material> benoetigteMaterialien;
-
-        string getLabel() {
-            return label;
-        }
-
-        double getGrundpreis() {
-            return grundpreis;
-        }
-
-        void setEinzelpreis(double einzelpreis) {
-            this->einzelpreis = einzelpreis;
-        }
-
-        double getEinzelpreis() {
-            return einzelpreis;
-        }
-};
-
-class Leer : public Building {
-    public:
-        Leer() {
-            this->grundpreis = 0.0;
-            this->label = "leer";
-            this->benoetigteMaterialien = {};
-        }
-};
-
-class Wasserkraftwerk : public Building {
-    public:
-        Wasserkraftwerk(string label) {
-            this->grundpreis = 1000.0;
-            this->label = label;
-            this->benoetigteMaterialien = {Holz(), Holz(), Metall()};
-        }
-};
-
-class Windkraftwerk : public Building {
-    public:
-        Windkraftwerk(string label) {
-            this->grundpreis = 500.0;
-            this->label = label;
-            this->benoetigteMaterialien = {Metall(), Metall(), Kunststoff()};
-        }
-};
-
-class Solaranlage : public Building {
-    public:
-        Solaranlage(string label) {
-            this->grundpreis = 100.0;
-            this->label = label;
-            this->benoetigteMaterialien = {Kunststoff(), Kunststoff(), Metall()};
-        }
-};
 
 int abfrage_laengebaubereich()
 {
@@ -125,25 +31,67 @@ void display_menu()
     cout << "(4) Exit" << endl;
 }
 
+string trans(int num) {
+    switch (num)
+    {
+    case 0:
+        return "Leer";
+    case 1:
+        return "WiKra";
+    case 2:
+        return "WaKra";
+    case 3:
+        return "Solar";
+    default:
+        return "Leer";
+    }
+}
 
-class CapycitySim {
-    public:
-        int breiteBaubereich;
-        int laengeBaubereich;
-        int topLeftX;
-        int topLeftY;
-        int bottomRightX;
-        int bottomRightY;
-        double gesamtPreis = 0;
-        Building** baubereich;
-        vector<Building> vorhandeneGebaeude = {};
+int main()
+{
+    int breiteBaubereich = abfrage_breitebaubereich();
+    int laengeBaubereich = abfrage_laengebaubereich();
+    int gewaehlteOption;
 
-        void setze_gebaeude() {
+    int topLeftX = -1;
+    int topLeftY = -1;
+    int bottomRightX = -1;
+    int bottomRightY = -1;
+
+    enum gebaeudetypen
+    {
+        Leer,
+        WaKra,
+        WiKra,
+        Solar
+    };
+
+    gebaeudetypen** baubereich = new gebaeudetypen * [breiteBaubereich];
+
+    for (int i = 0; i < breiteBaubereich; i++) {
+        baubereich[i] = new gebaeudetypen[laengeBaubereich];
+    }
+
+    for (int i = 0; i < breiteBaubereich; i++) {
+        for (int j = 0; j < laengeBaubereich; j++) {
+            baubereich[i][j] = Leer;
+        }
+    }
+
+    while (true)
+    {
+        display_menu();
+
+        cin >> gewaehlteOption;
+
+        switch (gewaehlteOption)
+        {                        // Optionenwahl
+        case 1:                  // Gebaeude setzen
+        {
             bool setzbar = false;
             int laenge = -1;
             int breite = -1;
             string artInput;
-            string labelInput;
 
             while (!setzbar)
             {
@@ -171,7 +119,7 @@ class CapycitySim {
                     }
                 }
 
-                cout << "Bitte Art des Gebaeudes eingeben (Wasserkraftwerk, Windkraftwerk, Solaranlage):" << endl;
+                cout << "Bitte Art des Gebaeudes eingeben (WaKra, WiKra, Solar):" << endl;
                 cin >> artInput;
                 cout << "Bitte Breite des gewuenschten Gebaeudes eingeben:" << endl;
                 cin >> breite;
@@ -186,7 +134,7 @@ class CapycitySim {
                     {
                         for (int j = topLeftY; j < (topLeftY + laenge); j++)
                         {
-                            if (baubereich[i][j].getLabel() != "leer")
+                            if (baubereich[i][j] != 0)
                             {
                                 setzbar = false;
                                 cout << "Zu bauendes Gebaeude kollidiert mit einem, dass bereits besteht!" << endl;
@@ -204,68 +152,32 @@ class CapycitySim {
                     cout << "Gebaeude liegt nicht innerhalb des Baubereichs!" << endl;
                 }
 
-                
-
                 if (setzbar)
                 {
-                    //Label-Abfrage, Dopplungen ausgeschlossen
-                    while (labelInput == "") {
-                        cout << "Bitte gewuenschtes Label fuer das zu erstellende Gebaeude eingeben:" << endl;
-                        cin >> labelInput;
-
-                        for (int i = 0; i < breiteBaubereich; i++) {
-                            for (int j = 0; j < laengeBaubereich; j++) {
-                                if ((baubereich[i][j].getLabel() != "leer") && (baubereich[i][j].getLabel() == labelInput)) {
-                                    cout << "Label wird bereits verwendet, denke dir ein anderes aus!" << endl;
-                                    labelInput = "";
-                                }
-                            }
-                        }
-                    }
-
-                    //Erstellung eines entsprechenden Gebaeude-Objekts und einfügen in das Bauplan-Array
-                    if (artInput == "Wasserkraftwerk")
+                    for (int i = topLeftX; i <= (topLeftX + breite - 1); i++)
                     {
-                        Wasserkraftwerk addedBuilding = Wasserkraftwerk(labelInput);
-
-                        for (int i = topLeftX; i <= (topLeftX + breite - 1); i++)
+                        for (int j = topLeftY; j <= (topLeftY + laenge - 1); j++)
                         {
-                            for (int j = topLeftY; j <= (topLeftY + laenge - 1); j++)
+                            if (artInput == "WaKra")
                             {
-                                baubereich[i][j] = addedBuilding;
+                                baubereich[i][j] = WaKra;
                             }
-                        }
-                    }
-                    else
-                    {
-                        if (artInput == "Windkraftwerk")
-                        {
-                            Windkraftwerk addedBuilding = Windkraftwerk(labelInput);
-
-                            for (int i = topLeftX; i <= (topLeftX + breite - 1); i++)
+                            else
                             {
-                                for (int j = topLeftY; j <= (topLeftY + laenge - 1); j++)
+                                if (artInput == "WiKra")
                                 {
-                                    baubereich[i][j] = addedBuilding;
+                                    baubereich[i][j] = WiKra;
                                 }
-                            }
-                        }
-                        else
-                        {
-                            if (artInput == "Solaranlage") {
-                                Solaranlage addedBuilding = Solaranlage(labelInput);
-
-                                for (int i = topLeftX; i <= (topLeftX + breite - 1); i++)
+                                else
                                 {
-                                    for (int j = topLeftY; j <= (topLeftY + laenge - 1); j++)
-                                    {
-                                        baubereich[i][j] = addedBuilding;
+                                    if (artInput == "Solar") {
+                                        baubereich[i][j] = Solar;
+                                    }
+                                    else {
+                                        cout << "Bitte gueltige Art des Gebaeudes waehlen!" << endl;
+                                        setzbar = false;
                                     }
                                 }
-                            }
-                            else {
-                                cout << "Bitte gueltige Art des Gebaeudes waehlen!" << endl;
-                                setzbar = false;
                             }
                         }
                     }
@@ -277,10 +189,11 @@ class CapycitySim {
             setzbar = false;
             laenge = -1;
             breite = -1;
-            labelInput = "";
-        }
 
-        void loesche_gebaeude() {
+            break;
+        }
+        case 2: // Bereich loeschen
+        {
             while (topLeftX == -1)
             {
                 cout << "Bitte die x-Koordinate der linken oberen Ecke eingeben:";
@@ -333,7 +246,7 @@ class CapycitySim {
             {
                 for (int j = topLeftY; j <= bottomRightY; j++)
                 {
-                    baubereich[i][j] = Leer();
+                    baubereich[i][j] = Leer;
                 }
             }
 
@@ -343,85 +256,24 @@ class CapycitySim {
             topLeftY = -1;
             bottomRightX = -1;
             bottomRightY = -1;
+            break;
         }
-
-        void print_baubereich() {
+        case 3: // Bauplan ausgeben
             for (int i = 0; i < laengeBaubereich; i++)
             {
                 for (int j = 0; j < breiteBaubereich; j++)
                 {
-                    cout << baubereich[j][i].getLabel() << "\t";
-                    
-                    for (Building b : vorhandeneGebaeude) {
-                        if (b.getLabel() != baubereich[j][i].getLabel()) {
-                            vorhandeneGebaeude.push_back(baubereich[j][i]);
-                        }
-                    }
+                    cout << trans(baubereich[j][i]) << "\t";
                 }
                 cout << endl;
             }
+            break;
+        case 4: // Exit
+            return 0;
+        default:
+            cout << "Bitte eine gueltige Option eingeben!" << endl;
         }
-
-        void init() {
-            breiteBaubereich = abfrage_breitebaubereich();
-            laengeBaubereich = abfrage_laengebaubereich();
-            int gewaehlteOption;
-
-            topLeftX = -1;
-            topLeftY = -1;
-            bottomRightX = -1;
-            bottomRightY = -1;
-
-            baubereich = new Building * [breiteBaubereich];
-
-            for (int i = 0; i < breiteBaubereich; i++) {
-                baubereich[i] = new Building[laengeBaubereich];
-            }
-
-            for (int i = 0; i < breiteBaubereich; i++) {
-                for (int j = 0; j < laengeBaubereich; j++) {
-                    baubereich[i][j] = Leer();
-                }
-            }
-
-            while (true)
-            {
-                display_menu();
-
-                cin >> gewaehlteOption;
-
-                switch (gewaehlteOption)
-                {                        // Optionenwahl
-                case 1:                  // Gebaeude setzen
-                {
-                    setze_gebaeude();
-                    break;
-                }
-                case 2: // Bereich loeschen
-                {
-                    loesche_gebaeude();
-                    break;
-                }
-                case 3: // Bauplan ausgeben
-                    print_baubereich();
-                    break;
-                case 4: // Exit
-                    exit(0);
-                default:
-                    cout << "Bitte eine gueltige Option eingeben!" << endl;
-                }
-            }
-
-        }
-
-        CapycitySim() {
-            init();
-        }
-};
-
-int main()
-{
-    CapycitySim c = CapycitySim();
+    }
 
     return 0;
 }
